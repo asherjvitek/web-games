@@ -13,31 +13,41 @@ const gridSize = 1000;
 const boxSize = 50;
 const evenBoxes = boxSize * 2;
 /** The time that the sanke waits to move in ms */
-const snakeSpeed = 500;
+const startingSpeed = 500;
+const speedIncrease = 10;
+const maxSpeed = 150;
+const logging = false;
 
-/** @class foodPos
+/** @class Position
  * @field {int} x
  * @field {int} y
  */
 
+
 /** The game state. Holds most of the information about where the snake is going and the position of the food.
  * @class
  * @field {string} direction
- * @field {foodPos} foodPos
+ * @field {Position} foodPos
+ * @field {Position[]} snake
  */
-let state = {
-    direction: "right",
-    foodPos: {
-        x: 0,
-        y: 0,
-    },
-    snake: [
-        { x: 0, y: 0 },
-        { x: 50, y: 0 },
-        { x: 100, y: 0 },
-        { x: 150, y: 0 },
-    ],
-    manualMove: false,
+let state = getDefaultState();
+
+function getDefaultState() {
+    return {
+        direction: "right",
+        foodPos: {
+            x: 0,
+            y: 0,
+        },
+        snake: [
+            { x: 0, y: 0 },
+            { x: 50, y: 0 },
+            { x: 100, y: 0 },
+            { x: 150, y: 0 },
+        ],
+        timeout: null,
+        snakeSpeed: startingSpeed,
+    }
 }
 
 //const snakeHead = {
@@ -46,8 +56,6 @@ let state = {
 //    "left": [40, 0, 0, 40],
 //    "up": [40, 40, 0, 0],
 //};
-
-
 
 function makeBoard() {
     for (let y = 0; y < gridSize; y += boxSize) {
@@ -130,30 +138,33 @@ function moveSnake() {
             break;
     }
 
+    if (state.snake.find(x => x.x === newHead.x && x.y === newHead.y) !== undefined) {
+        alert(`Game Over. You ate ${state.snake.length - 4} strawberries!`);
+        startGame();
+        return;
+    }
+
     state.snake.push(newHead);
 
     if (!(newHead.x == state.foodPos.x && newHead.y == state.foodPos.y)) {
         _ = state.snake.shift()
     } else {
         placeFood();
+        state.snakeSpeed = Math.max(maxSpeed, state.snakeSpeed - speedIncrease);
     }
-
 
     drawSnake();
 
-    setTimeout(() => {
-        if (!state.manualMove) {
-            moveSnake();
-        }
-        state.manualMove = false;
-    }, snakeSpeed)
+    state.timeout = setTimeout(() => {
+        moveSnake();
+    }, state.snakeSpeed)
 }
 
 /** @function 
  * @name handleKeyPress
  * @argument {KeyboardEvent} e */
 function handleKeyPress(e) {
-    console.info(e.key);
+    log(e.key);
     switch (e.key) {
         case "a":
         case "ArrowLeft":
@@ -188,8 +199,56 @@ function handleKeyPress(e) {
             return;
     }
 
-    state.manualMove = true;
+    clearTimeout(state.timeout);
     moveSnake();
+}
+
+function configureGamePad() {
+    if (!("getGamepads" in navigator)) {
+        console.info("The browser does not support the controllers API!.");
+        return;
+    }
+
+    function update() {
+        var gamePads = navigator.getGamepads();
+
+
+        for (let i = 0; i < gamePads.length; i++) {
+            const gp = gamePads[i];
+
+            gp.buttons.forEach((button, index) => {
+                if (button.pressed) {
+                    log(`Button ${button}, ${index} was pressed`);
+                    switch (index) {
+                        case 12:
+                            handleKeyPress({ key: "w" });
+                            return;
+                        case 13:
+                            handleKeyPress({ key: "s" });
+                            return;
+                        case 14:
+                            handleKeyPress({ key: "a" });
+                            return;
+                        case 15:
+                            handleKeyPress({ key: "d" });
+                            return;
+                        default:
+                            break;
+                    }
+                }
+            });
+
+            //gp.axes.forEach((axis, index) => {
+            //    console.log(`Axis ${axis}, ${index} was pressed`);
+            //});
+        }
+
+        setTimeout(() => {
+            requestAnimationFrame(update);
+        }, 80);
+    }
+
+    update();
 }
 
 function placeFood() {
@@ -208,15 +267,44 @@ function placeFood() {
     context.drawImage(svg, state.foodPos.x, state.foodPos.y, boxSize, boxSize);
 }
 
+function startGame() {
+    state = getDefaultState();
+    makeBoard();
+    drawSnake();
+    placeFood();
 
-makeBoard();
-drawSnake();
-placeFood();
+    //lets start this party!
+    moveSnake();
+}
 
-//lets start this party!
-moveSnake();
+function log(message) {
+    if (log) {
+        console.info(message);
+    }
+}
 
-//TODO
-//do not put the fool on the snake
-//we need to make the snake eat the food and grow
-//we need to make the game over when the snake eats itself
+//function drawGameOver() {
+//    context.beginPath();
+//    context.roundRect(200, 200, 600, 200, [10]);
+//    context.fillStyle = "White";
+//    context.fill();
+//
+//    context.fillStyle = "black";
+//    context.font = "40px Arial";
+//    context.fillText("Game Over:", 400, 280, 600);
+//
+//    context.beginPath();
+//    context.roundRect(250, 300, 100, 50, [10]);
+//    context.fillStyle = "Orange";
+//    context.fill();
+//
+//    context.fillStyle = "black";
+//    context.font = "40px Arial";
+//    context.fillText("Game Over:", 400, 280, 600);
+//}
+
+
+configureGamePad();
+startGame();
+
+//drawGameOver();

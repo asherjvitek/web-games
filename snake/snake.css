@@ -1,0 +1,11 @@
+h1 {
+    text-align: center;
+}
+
+#game {
+    border: .2rem solid black;
+    position: fixed;
+    left: 50%;
+    -webkit-transform: translate(-50%, -0%);
+    transform: translate(-50%, -0%);
+}
