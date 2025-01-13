@@ -1,0 +1,73 @@
+.new-game {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.game {
+    width: 600px;
+    position: fixed;
+    left: 50%;
+    -webkit-transform: translate(-50%, -0%);
+    transform: translate(-50%, -0%);
+}
+
+.flex-grid {
+    display: flex;
+    height: 200px;
+}
+
+.col {
+    flex: 1;
+    width: 200px;
+    text-align: center;
+    font-size: 8.5em;
+    user-select: none;
+}
+
+.one {
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+.two {
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+.three {
+    border-left: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+.four {
+    border-right: 1px solid black;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+.five {
+    border: 1px solid black;
+}
+
+.six {
+    border-left: 1px solid black;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+.seven {
+    border-right: 1px solid black;
+    border-top: 1px solid black;
+}
+
+.eight {
+    border-right: 1px solid black;
+    border-left: 1px solid black;
+    border-top: 1px solid black;
+}
+
+.nine {
+    border-left: 1px solid black;
+    border-top: 1px solid black;
+}

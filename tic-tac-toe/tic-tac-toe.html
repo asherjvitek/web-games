@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="tic-tac-toe.css">
+</head>
+
+<body>
+    <div class="new-game">
+        <button type="button" onclick="newGame()">New Game</button>
+    </div>
+
+    <h1 style="text-align: center;">Player Turn: <span id="playerTurn">X</span></h1>
+
+    <div class="game">
+        <div class="flex-grid">
+            <div position="0, 0" class="col one">
+            </div>
+            <div position="0, 1" class="col two">
+            </div>
+            <div position="0, 2" class="col three">
+            </div>
+        </div>
+        <div class="flex-grid">
+            <div position="1, 0" class="col four">
+            </div>
+            <div position="1, 1" class="col five">
+            </div>
+            <div position="1, 2" class="col six">
+            </div>
+        </div>
+        <div class="flex-grid">
+            <div position="2, 0" class="col seven">
+            </div>
+            <div position="2, 1" class="col eight">
+            </div>
+            <div position="2, 2" class="col nine">
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<script src="tic-tac-toe.js"> </script>
+
+
+</html>
