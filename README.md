@@ -8,4 +8,4 @@ This is the most simple of the games and was the first thing that I made and pla
 
 ## Snake
 
-First time using the ```<canvas>``` element in html and that is really cool.
+First time using the ```<canvas>``` element in html and that is really cool. This one supports controllers too!

@@ -10,7 +10,7 @@ for (let i = 0; i < boxes.length; i++) {
 function clickBox(element) {
     if (element.innerText !== "" || gameOver(boxes)) {
         return;
-    } 
+    }
 
     element.innerText = playerTurn.innerText;
 
@@ -26,58 +26,33 @@ function clickBox(element) {
     }
 }
 
+/** @function
+    * @param {HTMLCollectionOf<Element>} boxes
+    */
 function gameOver(boxes) {
 
-    var grid = [
-        ["", "", ""],
-        ["", "", ""],
-        ["", "", ""],
-    ];
+    var arr = [...boxes].sort(x => parseInt(x.attributes["position"]));
 
-    for (let i = 0; i < boxes.length; i++) {
-        const box = boxes[i];
-        const split = box.attributes["position"].value.split(",");
+    check = function(one, two, three) {
+        if (arr[one].innerText === "" || arr[two].innerText === "" || arr[three].innerText === "") {
+            return false;
+        }
 
-        grid[parseInt(split[0])][parseInt(split[1])] = box.innerText;
+        return arr[one].innerText === arr[two].innerText && arr[one].innerText === arr[three].innerText;
     }
 
-    if (grid[0][0] !== "" && grid[0][0] === grid[0][1] && grid[0][0] === grid[0][2]) {
-        return true;
-    }
-
-    if (grid[1][0] !== "" && grid[1][0] === grid[1][1] && grid[1][0] === grid[1][2]) {
-        return true;
-    }
-
-    if (grid[2][0] !== "" && grid[2][0] === grid[2][1] && grid[2][0] === grid[2][2]) {
-        return true;
-    }
-
-    if (grid[0][0] !== "" && grid[0][0] === grid[1][0] && grid[0][0] === grid[2][0]) {
-        return true;
-    }
-
-    if (grid[0][1] !== "" && grid[0][1] === grid[1][1] && grid[0][2] === grid[2][1]) {
-        return true;
-    }
-
-    if (grid[0][2] !== "" && grid[0][2] === grid[1][2] && grid[0][2] === grid[2][2]) {
-        return true;
-    }
-
-    if (grid[0][0] !== "" && grid[0][0] === grid[1][1] && grid[0][0] === grid[2][2]) {
-        return true;
-    }
-
-    if (grid[0][2] !== "" && grid[0][2] === grid[1][1] && grid[0][2] === grid[0][2]) {
-        return true;
-    }
-
-    return false;
+    return check(0, 1, 2) ||
+        check(3, 4, 5) ||
+        check(6, 7, 8) ||
+        check(0, 3, 6) ||
+        check(1, 4, 7) ||
+        check(2, 5, 8) ||
+        check(0, 4, 8) ||
+        check(6, 4, 2)
 }
 
 function newGame() {
-    
+
     for (let i = 0; i < boxes.length; i++) {
         const box = boxes[i];
         box.innerText = "";
