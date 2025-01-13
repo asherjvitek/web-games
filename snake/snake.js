@@ -146,7 +146,7 @@ function moveSnake() {
             moveSnake();
         }
         state.manualMove = false;
-    }, 500)
+    }, snakeSpeed)
 }
 
 /** @function 
