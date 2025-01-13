@@ -1,6 +1,11 @@
+h1, h2 {
+    text-align: center;
+}
+
 .new-game {
     display: flex;
     justify-content: flex-end;
+    padding-bottom: 10px;
 }
 
 .game {
