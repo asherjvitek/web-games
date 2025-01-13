@@ -2,75 +2,43 @@
 const canvas = document.getElementById("game");
 /** @type {CanvasRenderingContext2D} */
 const context = canvas.getContext("2d");
+/** @type {HTMLImageElement} */
+let svg = document.getElementById("food");
 
-const colors = [
-    //"red",
-    //"orange",
-    //"yellow",
-    "green",
-    "lightgreen",
-    //"blue",
-    //"purple",
-];
+document.addEventListener("keydown", handleKeyPress);
 
-const colorLookup = []
-let colorIndex = 0;
-
+/** The size of the grid that you would like the snake to be in */
 const gridSize = 1000;
+/** The size of the boxes in the grid. Should be something that is divisible by the gridSize */
 const boxSize = 50;
+const evenBoxes = boxSize * 2;
+/** The time that the sanke waits to move in ms */
+const snakeSpeed = 500;
 
-context.fillStyle = colors[colorIndex];
-context.fillRect(0, 0, boxSize, boxSize);
+/** @class foodPos
+ * @field {int} x
+ * @field {int} y
+ */
 
-colorLookup.push({ pos: { x: 0, y: 0 }, oldColor: context.fillStyle });
-
-let direction = "right";
-
-function makeBoard(x, y) {
-    colorIndex += 1;
-
-    if (colorIndex === colors.length) {
-        colorIndex = 0;
-    }
-
-    if (direction == "right") {
-        x += boxSize;
-    } else {
-        y += boxSize;
-        x = 0;
-        direction = "right";
-        colorIndex += 1;
-
-        if (colorIndex === colors.length) {
-            colorIndex = 0;
-        }
-    }
-
-    if (y > gridSize) {
-        return;
-    }
-
-    context.fillStyle = colors[colorIndex];
-    colorLookup.push({ pos: { x, y }, oldColor: context.fillStyle });
-    context.fillRect(x, y, boxSize, boxSize);
-
-    if (x > gridSize) {
-        direction = "down";
-    }
-
-    makeBoard(x, y);
+/** The game state. Holds most of the information about where the snake is going and the position of the food.
+ * @class
+ * @field {string} direction
+ * @field {foodPos} foodPos
+ */
+let state = {
+    direction: "right",
+    foodPos: {
+        x: 0,
+        y: 0,
+    },
+    snake: [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+        { x: 100, y: 0 },
+        { x: 150, y: 0 },
+    ],
+    manualMove: false,
 }
-
-makeBoard(0, 0);
-
-direction = "right";
-
-let snake = [
-    { x: 0, y: 0 },
-    { x: 50, y: 0 },
-    { x: 100, y: 0 },
-    { x: 150, y: 0 },
-];
 
 //const snakeHead = {
 //    "right": [0, 40, 40, 0],
@@ -80,86 +48,104 @@ let snake = [
 //};
 
 
-function drawSnake(snake) {
-    context.fillStyle = "blue";
 
+function makeBoard() {
+    for (let y = 0; y < gridSize; y += boxSize) {
+        for (let x = 0; x < gridSize; x += boxSize) {
+            context.fillStyle = getFillStyle(x, y);
+            context.fillRect(x, y, boxSize, boxSize);
+        }
+    }
+}
+
+function getFillStyle(x, y) {
+    if (y % evenBoxes === 0) {
+        if (x % evenBoxes === 0) {
+            return "green";
+        } else {
+            return "lightgreen";
+        }
+    } else {
+        if (x % evenBoxes === 0) {
+            return "lightgreen";
+        } else {
+            return "green";
+        }
+    }
+}
+
+function drawSnake() {
+    const snake = state.snake;
     for (let i = 0; i < snake.length; i++) {
         const e = snake[i];
 
         if (i === snake.length - 1) {
-            //radii = snakeHead[direction]
             context.fillStyle = "darkblue";
             context.fillRect(e.x, e.y, boxSize, boxSize);
-            //context.roundRect(e.x, e.y, boxSize, boxSize, radii)
-            //context.fill();
         } else {
+            context.fillStyle = "blue";
             context.fillRect(e.x, e.y, boxSize, boxSize);
         }
     }
 }
 
-drawSnake(snake);
+
 
 function moveSnake() {
-    let tail = snake.shift();
+    let newHead = { x: state.snake[0].x, y: state.snake[0].y };
 
-    if (tail.y % 100 === 0) {
-        if (tail.x % 100 === 0) {
-            context.fillStyle = "green";
-        } else {
-            context.fillStyle = "lightgreen";
-        }
-    } else {
-        if (tail.x % 100 === 0) {
-            context.fillStyle = "lightgreen";
-        } else {
-            context.fillStyle = "green";
-        }
-    }
-    context.fillRect(tail.x, tail.y, boxSize, boxSize);
+    context.fillStyle = getFillStyle(newHead.x, newHead.y)
+    context.fillRect(newHead.x, newHead.y, boxSize, boxSize);
 
-    let head = snake[snake.length - 1];
-    tail.x = head.x;
-    tail.y = head.y;
+    let head = state.snake[state.snake.length - 1];
+    newHead.x = head.x;
+    newHead.y = head.y;
 
-    switch (direction) {
+    switch (state.direction) {
         case "right":
-            tail.x += boxSize;
-            if (tail.x >= 1000) {
-                tail.x = 0;
+            newHead.x += boxSize;
+            if (newHead.x >= gridSize) {
+                newHead.x = 0;
             }
             break;
         case "down":
-            tail.y += boxSize;
-            if (tail.y >= 1000) {
-                tail.y = 0;
+            newHead.y += boxSize;
+            if (newHead.y >= gridSize) {
+                newHead.y = 0;
             }
             break;
         case "left":
-            tail.x -= boxSize;
-            if (tail.x < 0) {
-                tail.x = 950;
+            newHead.x -= boxSize;
+            if (newHead.x < 0) {
+                newHead.x = gridSize - boxSize;
             }
             break;
         case "up":
-            tail.y -= boxSize;
-            if (tail.y < 0) {
-                tail.y = 950;
+            newHead.y -= boxSize;
+            if (newHead.y < 0) {
+                newHead.y = gridSize - boxSize;
             }
             break;
         default:
             break;
     }
 
-    if (tail.x > 1000 || tail.x < 0 || tail.y > 1000 || tail.y < 0) {
+    state.snake.push(newHead);
 
+    if (!(newHead.x == state.foodPos.x && newHead.y == state.foodPos.y)) {
+        _ = state.snake.shift()
+    } else {
+        placeFood();
     }
 
-    snake.push(tail);
-    drawSnake(snake);
+
+    drawSnake();
 
     setTimeout(() => {
-        moveSnake();
+        if (!state.manualMove) {
+            moveSnake();
+        }
+        state.manualMove = false;
     }, 500)
 }
 
@@ -171,55 +157,64 @@ function handleKeyPress(e) {
     switch (e.key) {
         case "a":
         case "ArrowLeft":
-            if (direction == "right") {
+            if (state.direction == "right") {
                 return;
             }
 
-            direction = "left";
+            state.direction = "left";
             break;
         case "s":
         case "ArrowDown":
-            if (direction === "up") {
+            if (state.direction === "up") {
                 return;
             }
-            direction = "down";
+            state.direction = "down";
             break;
         case "d":
         case "ArrowRight":
-            if (direction === "left") {
+            if (state.direction === "left") {
                 return;
             }
-            direction = "right";
+            state.direction = "right";
             break;
         case "w":
         case "ArrowUp":
-            if (direction === "down") {
+            if (state.direction === "down") {
                 return;
             }
-            direction = "up";
+            state.direction = "up";
             break;
         default:
             return;
     }
 
-    //moveSnake()
+    state.manualMove = true;
+    moveSnake();
 }
 
+function placeFood() {
+    while (true) {
+        state.foodPos.x = Math.floor(Math.random() * 999);
+        state.foodPos.y = Math.floor(Math.random() * 999);
+
+        state.foodPos.x -= state.foodPos.x % boxSize;
+        state.foodPos.y -= state.foodPos.y % boxSize;
+
+        if (state.snake.find(x => x.x === state.foodPos.x && x.y === state.foodPos.y) === undefined) {
+            break;
+        }
+    }
+
+    context.drawImage(svg, state.foodPos.x, state.foodPos.y, boxSize, boxSize);
+}
+
+
+makeBoard();
+drawSnake();
+placeFood();
+
+//lets start this party!
 moveSnake();
-
-document.addEventListener("keydown", handleKeyPress);
-
-let svg = document.getElementById("food");
-
-let foodPos = {
-    x: Math.floor(Math.random() * 999),
-    y: Math.floor(Math.random() * 999),
-}
-
-foodPos.x -= foodPos.x % boxSize;
-foodPos.y -= foodPos.y % boxSize;
-
-context.drawImage(svg, foodPos.x, foodPos.y, boxSize, boxSize);
 
 //TODO
 //do not put the fool on the snake
