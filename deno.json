@@ -1,0 +1,6 @@
+{
+    "tasks": {
+        "start-watch": "deno run --allow-net -R=./snake,./tic-tac-toe,./index.html --watch server.ts",
+        "start": "deno run --allow-net -R=./snake,./tic-tac-toe,./index.html server.ts"
+    }
+}

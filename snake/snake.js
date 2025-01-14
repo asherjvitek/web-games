@@ -12,12 +12,16 @@ const gridSize = 1000;
 /** The size of the boxes in the grid. Should be something that is divisible by the gridSize */
 const boxSize = 50;
 const evenBoxes = boxSize * 2;
+
 /** The time that the sanke waits to move in ms */
 const startingSpeed = 500;
 const speedIncrease = 10;
 const maxSpeed = 150;
-const logging = false;
+
+const maxInputSpeed = 80;
 const axisThreshold = .5;
+
+const logging = false;
 
 /** @class Position
  * @field {int} x
@@ -156,6 +160,7 @@ function moveSnake() {
 
     drawSnake();
 
+    //requestAnimationFrame(moveSnake)
     state.timeout = setTimeout(() => {
         moveSnake();
     }, state.snakeSpeed)
@@ -204,6 +209,21 @@ function handleKeyPress(e) {
     moveSnake();
 }
 
+function mapControllerButtonToKeyboard(buttonIndex) {
+    switch (buttonIndex) {
+        case 12:
+            return "w";
+        case 13:
+            return "s";
+        case 14:
+            return "a";
+        case 15:
+            return "d";
+        default:
+            return null;
+    }
+}
+
 function configureGamePad() {
     if (!("getGamepads" in navigator)) {
         console.info("The browser does not support the controllers API!.");
@@ -213,29 +233,15 @@ function configureGamePad() {
     function update() {
         var gamePads = navigator.getGamepads();
 
-
         for (let i = 0; i < gamePads.length; i++) {
             const gp = gamePads[i];
 
             gp.buttons.forEach((button, index) => {
-                if (button.pressed) {
+                var b = mapControllerButtonToKeyboard(index);
+                if (button.pressed && b !== null) {
                     log(`Button ${button}, ${index} was pressed`);
-                    switch (index) {
-                        case 12:
-                            handleKeyPress({ key: "w" });
-                            return;
-                        case 13:
-                            handleKeyPress({ key: "s" });
-                            return;
-                        case 14:
-                            handleKeyPress({ key: "a" });
-                            return;
-                        case 15:
-                            handleKeyPress({ key: "d" });
-                            return;
-                        default:
-                            break;
-                    }
+
+                    handleKeyPress({ key: b });
                 }
             });
 
@@ -271,7 +277,7 @@ function configureGamePad() {
 
         setTimeout(() => {
             requestAnimationFrame(update);
-        }, maxSpeed);
+        }, maxInputSpeed);
     }
 
     update();
