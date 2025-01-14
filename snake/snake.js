@@ -17,6 +17,7 @@ const startingSpeed = 500;
 const speedIncrease = 10;
 const maxSpeed = 150;
 const logging = false;
+const axisThreshold = .5;
 
 /** @class Position
  * @field {int} x
@@ -238,14 +239,39 @@ function configureGamePad() {
                 }
             });
 
-            //gp.axes.forEach((axis, index) => {
-            //    console.log(`Axis ${axis}, ${index} was pressed`);
-            //});
+            gp.axes.forEach((axis, index) => {
+                //this is about half way on the joystick.
+                if (axis > -axisThreshold && axis < axisThreshold) {
+                    return;
+                }
+
+                log(`Axis ${axis}, ${index} was pressed`);
+
+                switch (index) {
+                    case 0:
+                        if (axis < 0) {
+                            handleKeyPress({ key: "a" });
+                        } else {
+                            handleKeyPress({ key: "d" });
+                        }
+                        return;
+                    case 1:
+                        if (axis < 0) {
+                            handleKeyPress({ key: "w" });
+                        } else {
+                            handleKeyPress({ key: "s" });
+                        }
+                        return;
+                    default:
+                        break;
+                }
+            });
+
         }
 
         setTimeout(() => {
             requestAnimationFrame(update);
-        }, 80);
+        }, maxSpeed);
     }
 
     update();
