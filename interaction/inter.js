@@ -1,3 +1,41 @@
+/** @class
+ * @name Card
+ * @property {int} number Like Ace
+ * @property {int} suite 
+ * property {int} x
+ * property {int} y
+ * property {int} w
+ * property {int} h
+ * property {string} color
+ * property {boolean} show
+ */
+class Card {
+    constructor(
+        number,
+        suite,
+        x,
+        y,
+        w,
+        h,
+        color,
+        show
+    ) {
+        this.number = number;
+        this.suite = suite;
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.color = color;
+        this.show = show;
+    }
+}
+
+Array.prototype.last = function() {
+    return this[this.length - 1];
+}
+
+
 /** @type {HTMLCanvasElement} */
 const canvas = document.getElementById("canvas");
 
@@ -39,6 +77,12 @@ const letters = [
 const locations = {
     draw: { x: 20, y: 20 },
     show: { x: 20, y: 40 + cardHeight },
+    completedStacks: {
+        heart: { x: 20 + cardHorizSpace * 8 + cardWidth * 8, y: 20 },
+        spade: { x: 20 + cardHorizSpace * 8 + cardWidth * 8, y: 20 * 2 + cardHeight },
+        diamond: { x: 20 + cardHorizSpace * 8 + cardWidth * 8, y: 20 * 3 + cardHeight * 2 },
+        club: { x: 20 + cardHorizSpace * 8 + cardWidth * 8, y: 20 * 4 + cardHeight * 3 },
+    }
 };
 
 const numbers = {
@@ -75,25 +119,41 @@ const numDisplay = {
 
 let state = {
     //deck
+    /** @type {Card[]} draw */
     draw: [],
+    /** @type {Card[]} draw */
     show: [],
+    /** @type {Card[]} draw */
     hiddenShow: [],
-    /** @type {[][]} piles */
+    /** @type {[]} piles */
     piles: [
+        /** @type {Card[]} draw */
         [],
+        /** @type {Card[]} draw */
         [],
+        /** @type {Card[]} draw */
         [],
+        /** @type {Card[]} draw */
         [],
+        /** @type {Card[]} draw */
         [],
+        /** @type {Card[]} draw */
         [],
+        /** @type {Card[]} draw */
         [],
     ],
     //completion piles
+    /** @type {Card[]} draw */
     hearts: [],
+    /** @type {Card[]} draw */
     spades: [],
+    /** @type {Card[]} draw */
     clubs: [],
+    /** @type {Card[]} draw */
     diamonds: [],
+    /** @type {{x, y}} draw */
     mouseClickPos: null,
+    /** @type {Card[]} draw */
     grabbedCards: [],
 
 };
@@ -112,16 +172,16 @@ function populateDraw() {
         const sk = suiteKeys[si];
         for (let ni = 0; ni < numberKeys.length; ni++) {
             const nk = numberKeys[ni];
-            state.draw.push({
-                number: numbers[nk],
-                suite: suites[sk],
-                x: locations.draw.x,
-                y: locations.draw.y,
-                w: cardWidth,
-                h: cardHeight,
-                color: suiteColors[suiteKeys[si]],
-                show: false,
-            });
+            state.draw.push(new Card(
+                numbers[nk],
+                suites[sk],
+                locations.draw.x,
+                locations.draw.y,
+                cardWidth,
+                cardHeight,
+                suiteColors[suiteKeys[si]],
+                false,
+            ));
         }
     }
 
@@ -132,9 +192,6 @@ function clearCanvas() {
     context.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-/** @function
- * @argument {object[]} cards
- */
 function renderGame() {
     clearCanvas()
 
@@ -194,11 +251,39 @@ function renderGame() {
         pileX += cardWidth + cardHorizSpace;
     }
 
+    var completedKeys = Object.keys(suites);
+
+    for (let i = 0; i < completedKeys.length; i++) {
+        const suite = completedKeys[i];
+        const completed = suite + "s";
+
+        if (state[completed].length == 0) {
+            drawEmpty(new Card(
+                null,
+                suites[suite],
+                locations.completedStacks[suite].x,
+                locations.completedStacks[suite].y,
+                cardWidth,
+                cardHeight,
+                suiteColors[suite],
+                null
+            ))
+        } else {
+            let card = state[completed][0];
+            card.x = locations.completedStacks[suite].x;
+            card.y = locations.completedStacks[suite].y;
+            drawCard(card);
+        }
+    }
+
     for (let i = 0; i < state.grabbedCards.length; i++) {
         drawCard(state.grabbedCards[i]);
     }
 }
 
+/** @function
+ * @param {Card} card
+ */
 function drawCardBack(card) {
     context.fillStyle = "Blue";
     context.fillRect(card.x, card.y, card.w, card.h);
@@ -208,6 +293,30 @@ function drawCardBack(card) {
     context.strokeRect(card.x, card.y, card.w, card.h);
 }
 
+/** @function
+ * @param {Card} card
+ */
+function drawEmpty(card) {
+    context.fillStyle = "rgba(255, 0, 0, 0)";
+    context.fillRect(card.x, card.y, card.w, card.h);
+
+    context.strokeStyle = "black";
+    context.lineWidth = 1;
+    context.strokeRect(card.x, card.y, card.w, card.h);
+
+    context.font = "20px Arial";
+    const suiteWidth = context.measureText(letters[card.suite]);
+    const textHeight = 12;
+    const widthOffset = 7;
+    const heightOffset = 10;
+
+    context.fillStyle = card.color;
+    context.fillText(letters[card.suite], card.x + cardWidth - widthOffset - suiteWidth.width, card.y + heightOffset + textHeight);
+}
+
+/** @function
+ * @param {Card} card
+ */
 function drawCard(card) {
     context.fillStyle = "White";
     context.fillRect(card.x, card.y, card.w, card.h);
@@ -249,7 +358,7 @@ function shuffleDraw() {
 
 /** @function
  * @name mousedown
-* @argument {MouseEvent} ev
+* @param {MouseEvent} ev
 */
 function mousedown(ev) {
     log(ev.clientX, ev.clientY, ev.button);
@@ -269,16 +378,173 @@ function mousedown(ev) {
     }
 }
 
-function isOnValidCard(cards, ev) {
+/** @function
+* @param {MouseEvent} ev
+*/
+function mouseup(ev) {
+    moveCards(ev);
+
+    state.grabbedCards = [];
+    state.mouseClickPos = null;
+    renderGame();
+}
+
+function findGrabbedCardsPile() {
+    for (let i = 0; i < state.piles.length; i++) {
+        let pile = state.piles[i];
+        const index = pile.indexOf(state.grabbedCards[0]);
+
+        if (index > -1) {
+            return pile;
+        }
+    }
+
+    throw new Error("Should not be possible that the card does not belong to a pile");
+}
+
+function moveCards(ev) {
+    if (state.grabbedCards.length == 0) {
+        return;
+    }
+
+    let completedPile = getCompletedPileUnderMouse(ev.clientX, ev.clientY);
+
+    if (completedPile != null) {
+        if (state.show.length > 0 && state.show[state.show.length - 1] == state.grabbedCards[0]) {
+            state.show.pop();
+            completedPile.push(...state.grabbedCards);
+            return;
+        }
+
+        let pile = findGrabbedCardsPile();
+        const index = pile.indexOf(state.grabbedCards[0]);
+        pile.splice(index, state.grabbedCards.length);
+
+        completedPile.push(state.grabbedCards[0]);
+
+        return;
+    }
+
     let destPile = getPileUnderMouse(ev.clientX, ev.clientY);
 
-    if (destPile.length == 0) {
+    if (!isOnValidCard(state.grabbedCards, destPile)) {
+        return;
+    }
+
+    if (state.show.length > 0 && state.show[state.show.length - 1] == state.grabbedCards[0]) {
+        state.show.pop();
+        destPile.push(...state.grabbedCards);
+        return;
+    }
+
+    let pile = findGrabbedCardsPile();
+    const index = pile.indexOf(state.grabbedCards[0]);
+    pile.splice(index, state.grabbedCards.length);
+
+    destPile.push(...state.grabbedCards);
+}
+
+/** @function
+ * @description This will get the current pile that the cursor is over. 
+ * @param {int} x
+ * @param {int} y
+ * return {Card[]}
+*/
+function getPileUnderMouse(x, y) {
+    let findCard = (cards, index) => {
+        if (cards.length == 0) {
+            const card = new Card(
+                null,
+                null,
+                locations.draw.x + (cardWidth + cardHorizSpace) * (index + 2), 
+                locations.draw.y,
+                cardWidth,
+                cardHeight,
+                null,
+                null
+            )
+
+            if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
+                return card;
+            }
+
+            return null;
+        }
+
+        const card = cards[cards.length - 1];
+
+        if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
+            return card;
+        }
+
+        return null;
+    }
+
+    for (let pi = 0; pi < state.piles.length; pi++) {
+        const pile = state.piles[pi];
+        const card = findCard(pile);
+
+        if (card == state.grabbedCards[0]) {
+            continue;
+        }
+
+        if (card != null) {
+            return pile;
+        }
+    }
+
+    return [];
+}
+
+function getCompletedPileUnderMouse(x, y) {
+    var completedStacks = Object.keys(locations.completedStacks);
+
+    for (let i = 0; i < completedStacks.length; i++) {
+        const key = completedStacks[i];
+
+        if (x >= locations.completedStacks[key].x &&
+            y >= locations.completedStacks[key].y &&
+            x <= locations.completedStacks[key].x + cardWidth &&
+            y <= locations.completedStacks[key].y + cardHeight) {
+            let completedPile = state[`${key}s`];
+            let grabbedCard = state.grabbedCards[0];
+
+            if (completedPile.length == 0 && grabbedCard.number == numbers.ace && suites[key] == grabbedCard.suite) {
+                return completedPile;
+            }
+
+            const card = completedPile.last();
+
+            if (card.suite == grabbedCard.suite && grabbedCard.number - card.number == 1) {
+                return completedPile;
+            }
+
+            return null;
+        }
+    }
+
+    return null;
+}
+
+
+/** @function
+ * @name isOnValidCard
+ * @param {Card[]} cards
+ * @param {Card[]} pile
+ */
+function isOnValidCard(cards, pile) {
+    if (pile.length == 0) {
+
+        if (cards[0].number == numbers.king) {
+            return true;
+        }
+
         return false;
     }
 
-    const lastCard = destPile[destPile.length - 1];
+    const lastCard = pile[pile.length - 1];
 
-    if (lastCard.number - cards[0].number > 1) {
+    if (lastCard.number - cards[0].number != 1) {
         return false;
     }
 
@@ -286,46 +552,12 @@ function isOnValidCard(cards, ev) {
         return false;
     }
 
-    if (state.show.length > 0 && state.show[state.show.length - 1] == state.grabbedCards[0]) {
-        state.show.pop();
-        destPile.push(...state.grabbedCards);
-        return true;
-    }
-
-    for (let i = 0; i < state.piles.length; i++) {
-        let pile = state.piles[i];
-        const index = pile.indexOf(state.grabbedCards[0]);
-
-        if (index > -1) {
-            pile.splice(index, state.grabbedCards.length);
-            destPile.push(...state.grabbedCards);
-        }
-    }
-
-
     return true;
 }
 
-/** @function
-* @argument {MouseEvent} ev
-*/
-function mouseup(ev) {
-
-    if (state.grabbedCards.length > 0 && isOnValidCard(state.grabbedCards, ev)) {
-        //move the cards onto the new stack...
-        //1. remove from whatever stack they are on
-        //2. move them to the stack they are hovering over?
-
-    }
-
-
-    state.grabbedCards = [];
-    state.mouseClickPos = null;
-    renderGame();
-}
 
 /** @function
-* @argument {MouseEvent} ev
+* @param {MouseEvent} ev
 */
 function mousemove(ev) {
     if (ev.buttons != leftClick) {
@@ -366,8 +598,10 @@ function mousemove(ev) {
 }
 
 /** @function
- * argument {number} x
- * argument {number} x
+ * @description This will get you all the cards that are currently under the mouse that you can grab.
+ * @param {number} x
+ * @param {number} x
+ * @returns {Card[]}
 */
 function getCardsUnderMouse(x, y) {
     let findCards = (cards) => {
@@ -417,33 +651,6 @@ function getCardsUnderMouse(x, y) {
     return [];
 }
 
-function getPileUnderMouse(x, y) {
-    let findCard = (cards) => {
-        const card = cards[cards.length - 1];
-
-        if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
-            return card;
-        }
-
-        return null;
-    }
-
-    for (let pi = 0; pi < state.piles.length; pi++) {
-        const pile = state.piles[pi];
-        const card = findCard(pile);
-
-        if (card == state.grabbedCards[0]) {
-            continue;
-        }
-
-        if (card != null) {
-            return pile;
-        }
-    }
-
-    return [];
-}
-
 function populatePiles() {
     for (let i = 0; i < 7; i++) {
         for (let j = 0; j < i + 1; j++) {
@@ -474,7 +681,7 @@ function drawFromDraw() {
         }
     }
 
-    console.info(state.hiddenShow, state.show, state.draw);
+    log(state.hiddenShow, state.show, state.draw);
 
 }
 
@@ -482,6 +689,7 @@ populateDraw();
 shuffleDraw();
 populatePiles();
 drawFromDraw();
+
 
 renderGame(state.draw);
 
