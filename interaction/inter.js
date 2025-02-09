@@ -1,3 +1,28 @@
+//WORKING NOTES:
+
+//CURRENT ISSUES:
+//1. When you would click on a king that is on an empty space it will disappear
+//2. Should you be able to remove cards from the completed piles?
+
+//Do Better?: From what I have seen this is the way that most people would do this but I would think that there is possibly a better way. What is the way to do this without clearing the whole of the canvas?
+
+//TODO:
+//2. Right now you can't pull cards off the completed piles.
+//3. We need to make sure that you can win the game....
+//4. We for sure need that fancy spread all the cards all over the place animation that you would get at the end of the game when you win.
+
+//DEBUG
+const logInfo = false;
+const allowShiftClickMoveToDraw = true;
+
+function log(...data) {
+    if (logInfo) {
+        console.info(data)
+    }
+}
+
+//GAME STUFF
+
 /** @class
  * @name Card
  * @property {int} number Like Ace
@@ -35,7 +60,6 @@ Array.prototype.last = function() {
     return this[this.length - 1];
 }
 
-
 /** @type {HTMLCanvasElement} */
 const canvas = document.getElementById("canvas");
 
@@ -46,7 +70,6 @@ canvas.width = document.body.clientWidth;
 const context = canvas.getContext("2d");
 
 const leftClick = 1;
-const logInfo = false;
 const cardWidth = 100;
 const cardHeight = 170;
 const cardVertSpace = 30;
@@ -98,7 +121,7 @@ const numbers = {
     ten: 10,
     jack: 11,
     queen: 12,
-    king: 12,
+    king: 13,
 };
 
 const numDisplay = {
@@ -114,7 +137,7 @@ const numDisplay = {
     10: "10",
     11: "J",
     12: "Q",
-    12: "K",
+    13: "K",
 };
 
 let state = {
@@ -158,12 +181,6 @@ let state = {
 
 };
 
-function log(...data) {
-    if (logInfo) {
-        console.info(data)
-    }
-}
-
 function populateDraw() {
     const suiteKeys = Object.keys(suites);
     const numberKeys = Object.keys(numbers);
@@ -188,12 +205,8 @@ function populateDraw() {
     log(state.draw);
 }
 
-function clearCanvas() {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-}
-
 function renderGame() {
-    clearCanvas()
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
     if (state.draw.length > 0) {
         state.draw[0].x = locations.draw.x;
@@ -269,7 +282,7 @@ function renderGame() {
                 null
             ))
         } else {
-            let card = state[completed][0];
+            let card = state[completed].last();
             card.x = locations.completedStacks[suite].x;
             card.y = locations.completedStacks[suite].y;
             drawCard(card);
@@ -361,7 +374,7 @@ function shuffleDraw() {
 * @param {MouseEvent} ev
 */
 function mousedown(ev) {
-    log(ev.clientX, ev.clientY, ev.button);
+    log(ev.clientX, ev.clientY, ev.buttons, ev.shiftKey);
 
     if (ev.clientX >= locations.draw.x && ev.clientY >= locations.draw.y && ev.clientX <= locations.draw.x + cardWidth && ev.clientY <= locations.draw.y + cardHeight) {
         drawFromDraw();
@@ -369,10 +382,18 @@ function mousedown(ev) {
         return;
     }
 
-    const cards = getCardsUnderMouse(ev.clientX, ev.clientY);
+    let cards = getCardsUnderMouse(ev.clientX, ev.clientY);
+    if (ev.buttons == leftClick && ev.shiftKey && allowShiftClickMoveToDraw && cards.length > 0) {
+        let pile = findSourcePile(cards);
+        while (cards.length > 0) {
+            let card = cards.pop();
+            const index = pile.indexOf(card);
+            pile.splice(index, 1);
+            state.draw.unshift(card);
+        }
+    }
+
     if (cards.length > 0 && ev.buttons == leftClick) {
-        // state.draw.splice(card.i, 1);
-        // state.draw.push(card.card);
         state.mouseClickPos = { x: ev.clientX, y: ev.clientY };
         state.grabbedCards.push(...cards);
     }
@@ -389,10 +410,14 @@ function mouseup(ev) {
     renderGame();
 }
 
-function findGrabbedCardsPile() {
+function findSourcePile(cards) {
+    if (state.show.indexOf(cards[0]) > -1) {
+        return state.show;
+    }
+
     for (let i = 0; i < state.piles.length; i++) {
         let pile = state.piles[i];
-        const index = pile.indexOf(state.grabbedCards[0]);
+        const index = pile.indexOf(cards[0]);
 
         if (index > -1) {
             return pile;
@@ -402,6 +427,48 @@ function findGrabbedCardsPile() {
     throw new Error("Should not be possible that the card does not belong to a pile");
 }
 
+/** @function
+ * @name moveCards2
+ * @param {Card[]} cards
+ * @param {Card[]} source
+ * @param {Card[]} dest
+ */
+function moveCards2(cards, source, dest) {
+    while (cards.length > 0) {
+        let card = cards.shift();
+        dest.push(card);
+
+        var index = source.indexOf(card);
+        source.splice(index, 1);
+    }
+}
+
+/** @function
+ * @param {Card[]} cards
+ * @param {{pile: Card[], suite: int}} dest
+ */
+function canPlaceOnCompleted(cards, dest) {
+    if (cards.length > 1) {
+        return false;
+    }
+
+    let grabbedCard = cards[0];
+
+    if (grabbedCard.suite != dest.suite) {
+        return false;
+    }
+
+    if (dest.pile.length == 0 && grabbedCard.number == numbers.ace) {
+        return true;
+    }
+
+    const card = dest.pile.last();
+
+    if (grabbedCard.number - card.number == 1) {
+        return true;
+    }
+}
+
 function moveCards(ev) {
     if (state.grabbedCards.length == 0) {
         return;
@@ -409,39 +476,21 @@ function moveCards(ev) {
 
     let completedPile = getCompletedPileUnderMouse(ev.clientX, ev.clientY);
 
-    if (completedPile != null) {
-        if (state.show.length > 0 && state.show[state.show.length - 1] == state.grabbedCards[0]) {
-            state.show.pop();
-            completedPile.push(...state.grabbedCards);
-            return;
-        }
-
-        let pile = findGrabbedCardsPile();
-        const index = pile.indexOf(state.grabbedCards[0]);
-        pile.splice(index, state.grabbedCards.length);
-
-        completedPile.push(state.grabbedCards[0]);
+    if (completedPile != null && canPlaceOnCompleted(state.grabbedCards, completedPile)) {
+        let source = findSourcePile(state.grabbedCards);
+        moveCards2(state.grabbedCards, source, completedPile.pile);
 
         return;
     }
 
     let destPile = getPileUnderMouse(ev.clientX, ev.clientY);
 
-    if (!isOnValidCard(state.grabbedCards, destPile)) {
+    if (!canPlaceOnCard(state.grabbedCards, destPile)) {
         return;
     }
 
-    if (state.show.length > 0 && state.show[state.show.length - 1] == state.grabbedCards[0]) {
-        state.show.pop();
-        destPile.push(...state.grabbedCards);
-        return;
-    }
-
-    let pile = findGrabbedCardsPile();
-    const index = pile.indexOf(state.grabbedCards[0]);
-    pile.splice(index, state.grabbedCards.length);
-
-    destPile.push(...state.grabbedCards);
+    let source = findSourcePile(state.grabbedCards);
+    moveCards2(state.grabbedCards, source, destPile);
 }
 
 /** @function
@@ -456,7 +505,7 @@ function getPileUnderMouse(x, y) {
             const card = new Card(
                 null,
                 null,
-                locations.draw.x + (cardWidth + cardHorizSpace) * (index + 2), 
+                locations.draw.x + cardWidth * (index + 1) + cardHorizSpace * (index + 2),
                 locations.draw.y,
                 cardWidth,
                 cardHeight,
@@ -471,7 +520,7 @@ function getPileUnderMouse(x, y) {
             return null;
         }
 
-        const card = cards[cards.length - 1];
+        const card = cards.last();
 
         if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
             return card;
@@ -482,7 +531,7 @@ function getPileUnderMouse(x, y) {
 
     for (let pi = 0; pi < state.piles.length; pi++) {
         const pile = state.piles[pi];
-        const card = findCard(pile);
+        const card = findCard(pile, pi);
 
         if (card == state.grabbedCards[0]) {
             continue;
@@ -507,19 +556,8 @@ function getCompletedPileUnderMouse(x, y) {
             x <= locations.completedStacks[key].x + cardWidth &&
             y <= locations.completedStacks[key].y + cardHeight) {
             let completedPile = state[`${key}s`];
-            let grabbedCard = state.grabbedCards[0];
 
-            if (completedPile.length == 0 && grabbedCard.number == numbers.ace && suites[key] == grabbedCard.suite) {
-                return completedPile;
-            }
-
-            const card = completedPile.last();
-
-            if (card.suite == grabbedCard.suite && grabbedCard.number - card.number == 1) {
-                return completedPile;
-            }
-
-            return null;
+            return { pile: completedPile, suite: suites[key] };
         }
     }
 
@@ -532,7 +570,7 @@ function getCompletedPileUnderMouse(x, y) {
  * @param {Card[]} cards
  * @param {Card[]} pile
  */
-function isOnValidCard(cards, pile) {
+function canPlaceOnCard(cards, pile) {
     if (pile.length == 0) {
 
         if (cards[0].number == numbers.king) {
@@ -542,7 +580,7 @@ function isOnValidCard(cards, pile) {
         return false;
     }
 
-    const lastCard = pile[pile.length - 1];
+    const lastCard = pile.last();
 
     if (lastCard.number - cards[0].number != 1) {
         return false;
@@ -631,9 +669,14 @@ function getCardsUnderMouse(x, y) {
         }
     }
 
-    let findCards2 = (cards) => {
+    let findCardsInShow = (cards) => {
         let result = [];
-        const card = cards[cards.length - 1];
+
+        if (cards.length == 0) {
+            return result;
+        }
+
+        const card = cards.last();
 
         if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
             result.push(card);
@@ -642,10 +685,10 @@ function getCardsUnderMouse(x, y) {
         return result;
     }
 
-    const cards = findCards2(state.show);
+    const cards = findCardsInShow(state.show);
 
     if (cards.length > 0) {
-        return [cards[cards.length - 1]];
+        return [cards.last()];
     }
 
     return [];
@@ -689,8 +732,6 @@ populateDraw();
 shuffleDraw();
 populatePiles();
 drawFromDraw();
-
-
 renderGame(state.draw);
 
 canvas.addEventListener("mousedown", mousedown);
