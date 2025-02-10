@@ -1,19 +1,35 @@
 //WORKING NOTES:
 
 //CURRENT ISSUES:
-//1. When you would click on a king that is on an empty space it will disappear
-//2. Should you be able to remove cards from the completed piles?
+// Nothing?
 
 //Do Better?: From what I have seen this is the way that most people would do this but I would think that there is possibly a better way. What is the way to do this without clearing the whole of the canvas?
 
 //TODO:
-//2. Right now you can't pull cards off the completed piles.
-//3. We need to make sure that you can win the game....
-//4. We for sure need that fancy spread all the cards all over the place animation that you would get at the end of the game when you win.
+//* Right now you can't pull cards off the completed piles.
+//* I think that some sort of help thing on the double clicking and whatnot...
+//* We should display the suites as actual suites instead of just letters
+//* We for sure need that fancy spread all the cards all over the place animation that you would get at the end of the game when you win.
 
 //DEBUG
 const logInfo = false;
 const allowShiftClickMoveToDraw = true;
+
+//CONFIG:
+let config = {
+    drawNumber: 1,
+}
+
+/** @function
+ * @param {HTMLSelectElement} ele
+ */
+function setDrawNumber(ele, resrtartGame) {
+    config.drawNumber = ele.options[ele.selectedIndex].value;
+
+    if (resrtartGame) {
+        startGame();
+    }
+}
 
 function log(...data) {
     if (logInfo) {
@@ -74,6 +90,7 @@ const cardWidth = 100;
 const cardHeight = 170;
 const cardVertSpace = 30;
 const cardHorizSpace = 30;
+const drawPileMax = 3;
 
 const suites = {
     heart: 0,
@@ -178,8 +195,49 @@ let state = {
     mouseClickPos: null,
     /** @type {Card[]} draw */
     grabbedCards: [],
-
 };
+
+function initState() {
+    state = {
+        //deck
+        /** @type {Card[]} draw */
+        draw: [],
+        /** @type {Card[]} draw */
+        show: [],
+        /** @type {Card[]} draw */
+        hiddenShow: [],
+        /** @type {[]} piles */
+        piles: [
+            /** @type {Card[]} draw */
+            [],
+            /** @type {Card[]} draw */
+            [],
+            /** @type {Card[]} draw */
+            [],
+            /** @type {Card[]} draw */
+            [],
+            /** @type {Card[]} draw */
+            [],
+            /** @type {Card[]} draw */
+            [],
+            /** @type {Card[]} draw */
+            [],
+        ],
+        //completion piles
+        /** @type {Card[]} draw */
+        hearts: [],
+        /** @type {Card[]} draw */
+        spades: [],
+        /** @type {Card[]} draw */
+        clubs: [],
+        /** @type {Card[]} draw */
+        diamonds: [],
+        /** @type {{x, y}} draw */
+        mouseClickPos: null,
+        /** @type {Card[]} draw */
+        grabbedCards: [],
+    };
+}
 
 function populateDraw() {
     const suiteKeys = Object.keys(suites);
@@ -374,15 +432,15 @@ function shuffleDraw() {
 * @param {MouseEvent} ev
 */
 function mousedown(ev) {
-    log(ev.clientX, ev.clientY, ev.buttons, ev.shiftKey);
+    log(ev.offsetX, ev.offsetY, ev.buttons, ev.shiftKey);
 
-    if (ev.clientX >= locations.draw.x && ev.clientY >= locations.draw.y && ev.clientX <= locations.draw.x + cardWidth && ev.clientY <= locations.draw.y + cardHeight) {
+    if (ev.offsetX >= locations.draw.x && ev.offsetY >= locations.draw.y && ev.offsetX <= locations.draw.x + cardWidth && ev.offsetY <= locations.draw.y + cardHeight) {
         drawFromDraw();
         renderGame();
         return;
     }
 
-    let cards = getCardsUnderMouse(ev.clientX, ev.clientY);
+    let cards = getCardsUnderMouse(ev.offsetX, ev.offsetY);
     if (ev.buttons == leftClick && ev.shiftKey && allowShiftClickMoveToDraw && cards.length > 0) {
         let pile = findSourcePile(cards);
         while (cards.length > 0) {
@@ -394,7 +452,7 @@ function mousedown(ev) {
     }
 
     if (cards.length > 0 && ev.buttons == leftClick) {
-        state.mouseClickPos = { x: ev.clientX, y: ev.clientY };
+        state.mouseClickPos = { x: ev.offsetX, y: ev.offsetY };
         state.grabbedCards.push(...cards);
     }
 }
@@ -405,9 +463,41 @@ function mousedown(ev) {
 function mouseup(ev) {
     moveCards(ev);
 
+    if (state.show.length == 0 && state.hiddenShow.length > 0) {
+        while (state.hiddenShow.length > 0 && state.show.length < drawPileMax) {
+            state.show.push(state.hiddenShow.pop());
+        }
+    }
+
     state.grabbedCards = [];
     state.mouseClickPos = null;
     renderGame();
+}
+
+/** @function
+* @param {MouseEvent} ev
+*/
+function dblclick(ev) {
+    log("double click", ev.offsetX, ev.offsetY);
+    let cards = getCardsUnderMouse(ev.offsetX, ev.offsetY);
+
+    if (cards.length != 1) {
+        return;
+    }
+
+    let card = cards[0];
+
+    const suiteKeys = Object.keys(suites);
+    const pileKey = suiteKeys[card.suite];
+    let completedPile = state[pileKey + "s"];
+
+    if (canPlaceOnCompleted(cards, {pile: completedPile, suite: card.suite })) {
+        let source = findSourcePile(cards);
+        moveCards2(cards, source, completedPile);
+    }
+
+    renderGame();
+
 }
 
 function findSourcePile(cards) {
@@ -436,10 +526,11 @@ function findSourcePile(cards) {
 function moveCards2(cards, source, dest) {
     while (cards.length > 0) {
         let card = cards.shift();
-        dest.push(card);
 
         var index = source.indexOf(card);
         source.splice(index, 1);
+
+        dest.push(card);
     }
 }
 
@@ -474,7 +565,7 @@ function moveCards(ev) {
         return;
     }
 
-    let completedPile = getCompletedPileUnderMouse(ev.clientX, ev.clientY);
+    let completedPile = getCompletedPileUnderMouse(ev.offsetX, ev.offsetY);
 
     if (completedPile != null && canPlaceOnCompleted(state.grabbedCards, completedPile)) {
         let source = findSourcePile(state.grabbedCards);
@@ -483,7 +574,7 @@ function moveCards(ev) {
         return;
     }
 
-    let destPile = getPileUnderMouse(ev.clientX, ev.clientY);
+    let destPile = getPileUnderMouse(ev.offsetX, ev.offsetY);
 
     if (!canPlaceOnCard(state.grabbedCards, destPile)) {
         return;
@@ -542,7 +633,7 @@ function getPileUnderMouse(x, y) {
         }
     }
 
-    return [];
+    return null;
 }
 
 function getCompletedPileUnderMouse(x, y) {
@@ -571,6 +662,10 @@ function getCompletedPileUnderMouse(x, y) {
  * @param {Card[]} pile
  */
 function canPlaceOnCard(cards, pile) {
+    if (pile == null) {
+        return false;
+    }
+
     if (pile.length == 0) {
 
         if (cards[0].number == numbers.king) {
@@ -608,8 +703,8 @@ function mousemove(ev) {
     }
 
     currentMousePos = {
-        x: ev.clientX,
-        y: ev.clientY
+        x: ev.offsetX,
+        y: ev.offsetY
     };
 
     delta = {
@@ -630,8 +725,8 @@ function mousemove(ev) {
     renderGame();
 
     state.mouseClickPos = {
-        x: ev.clientX,
-        y: ev.clientY
+        x: ev.offsetX,
+        y: ev.offsetY
     };
 }
 
@@ -704,10 +799,11 @@ function populatePiles() {
     }
 }
 
-
 function drawFromDraw() {
-    while (state.show.length > 0) {
-        state.hiddenShow.push(state.show.shift());
+    if (config.drawNumber == drawPileMax || state.show.length == drawPileMax) {
+        while (state.show.length > 0) {
+            state.hiddenShow.push(state.show.shift());
+        }
     }
 
     if (state.draw.length == 0) {
@@ -716,7 +812,7 @@ function drawFromDraw() {
         }
     }
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < config.drawNumber; i++) {
         if (state.draw.length > 0) {
             let card = state.draw.pop();
             card.show = true;
@@ -728,15 +824,22 @@ function drawFromDraw() {
 
 }
 
-populateDraw();
-shuffleDraw();
-populatePiles();
-drawFromDraw();
-renderGame(state.draw);
+function startGame() {
+    initState();
+    setDrawNumber(document.getElementById("drawNumber"), false);
+    populateDraw();
+    shuffleDraw();
+    populatePiles();
+    drawFromDraw();
+    renderGame(state.draw);
+}
+
+startGame();
 
 canvas.addEventListener("mousedown", mousedown);
 canvas.addEventListener("mouseup", mouseup);
 canvas.addEventListener("mousemove", mousemove);
+canvas.addEventListener("dblclick", dblclick);
 
 window.onresize = () => {
     canvas.height = document.body.clientHeight;

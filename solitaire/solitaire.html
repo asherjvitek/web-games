@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>solitaireactions</title>
+    <link href="solitaire.css" rel="stylesheet">
+</head>
+
+<body>
+    <div style="padding: 5px;">
+        <label for="drawNumber">Draw Number:</label>
+
+        <select id="drawNumber" onchange="setDrawNumber(this, true);">
+            <option value="1">1 - Easy</option>
+            <option value="3">3 - Hard</option>
+        </select>
+        <button type="button" onclick="startGame();">New Game</button>
+    </div>
+    <canvas id="canvas" width="1000" height="1000"></canvas>
+</body>
+
+<script src="solitaire.js"></script>
+
+</html>
