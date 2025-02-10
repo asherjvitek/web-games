@@ -7,7 +7,6 @@
 
 //TODO:
 //* We for sure need that fancy spread all the cards all over the place animation that you would get at the end of the game when you win.
-//* We should display the suites as actual suites instead of just letters
 //* I think that some sort of help thing on the double clicking and whatnot...
 
 //DEBUG
@@ -105,13 +104,17 @@ const suiteColors = {
     club: "black",
 };
 
+const heart_image = document.getElementById("heart");
+const spade_image = document.getElementById("spade");
+const club_image = document.getElementById("club");
+const diamond_image = document.getElementById("diamond");
 
-const letters = [
-    "H",
-    "S",
-    "C",
-    "D"
-];
+let images = [
+    heart_image,
+    spade_image,
+    club_image,
+    diamond_image,
+]
 
 const locations = {
     draw: { x: 20, y: 20 },
@@ -387,14 +390,8 @@ function drawEmpty(card) {
     context.lineWidth = 1;
     context.strokeRect(card.x, card.y, card.w, card.h);
 
-    context.font = "20px Arial";
-    const suiteWidth = context.measureText(letters[card.suite]);
-    const textHeight = 12;
-    const widthOffset = 7;
-    const heightOffset = 10;
-
-    context.fillStyle = card.color;
-    context.fillText(letters[card.suite], card.x + cardWidth - widthOffset - suiteWidth.width, card.y + heightOffset + textHeight);
+    const image = images[card.suite];
+    context.drawImage(image, card.x + cardWidth / 2 - 40, card.y + cardWidth / 2, 80, 80);
 }
 
 /** @function
@@ -412,7 +409,6 @@ function drawCard(card) {
 
     context.font = "20px Arial";
     const numberWidth = context.measureText(number);
-    const suiteWidth = context.measureText(letters[card.suite]);
     const textHeight = 12;
     const widthOffset = 7;
     const heightOffset = 10;
@@ -423,8 +419,8 @@ function drawCard(card) {
     context.fillStyle = card.color;
     context.fillText(number, card.x + cardWidth - numberWidth.width - widthOffset, card.y + cardHeight - heightOffset);
 
-    context.fillStyle = card.color;
-    context.fillText(letters[card.suite], card.x + cardWidth - widthOffset - suiteWidth.width, card.y + heightOffset + textHeight);
+    const image = images[card.suite];
+    context.drawImage(image, card.x + cardWidth - widthOffset - 20, card.y + heightOffset, 20, 20);
 }
 
 function shuffleDraw() {
@@ -880,7 +876,6 @@ function startGame() {
     renderGame(state.draw);
 }
 
-startGame();
 
 canvas.addEventListener("mousedown", mousedown);
 canvas.addEventListener("mouseup", mouseup);
@@ -894,3 +889,7 @@ window.onresize = () => {
     renderGame(state.draw);
 }
 
+//Make sure that the SVG images have loaded all the way before trying to render the game.
+document.addEventListener("DOMContentLoaded", function() {
+    startGame();
+});
