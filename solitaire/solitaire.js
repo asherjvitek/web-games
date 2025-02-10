@@ -6,10 +6,9 @@
 //Do Better?: From what I have seen this is the way that most people would do this but I would think that there is possibly a better way. What is the way to do this without clearing the whole of the canvas?
 
 //TODO:
-//* Right now you can't pull cards off the completed piles.
-//* I think that some sort of help thing on the double clicking and whatnot...
-//* We should display the suites as actual suites instead of just letters
 //* We for sure need that fancy spread all the cards all over the place animation that you would get at the end of the game when you win.
+//* We should display the suites as actual suites instead of just letters
+//* I think that some sort of help thing on the double clicking and whatnot...
 
 //DEBUG
 const logInfo = false;
@@ -327,24 +326,37 @@ function renderGame() {
     for (let i = 0; i < completedKeys.length; i++) {
         const suite = completedKeys[i];
         const completed = suite + "s";
+        const emptyCard = new Card(
+            null,
+            suites[suite],
+            locations.completedStacks[suite].x,
+            locations.completedStacks[suite].y,
+            cardWidth,
+            cardHeight,
+            suiteColors[suite],
+            null
+        );
 
         if (state[completed].length == 0) {
-            drawEmpty(new Card(
-                null,
-                suites[suite],
-                locations.completedStacks[suite].x,
-                locations.completedStacks[suite].y,
-                cardWidth,
-                cardHeight,
-                suiteColors[suite],
-                null
-            ))
-        } else {
-            let card = state[completed].last();
-            card.x = locations.completedStacks[suite].x;
-            card.y = locations.completedStacks[suite].y;
-            drawCard(card);
+            drawEmpty(emptyCard);
+            continue;
         }
+
+        let card = state[completed].last();
+
+        if (card == state.grabbedCards[0]) {
+            if (state[completed].length > 1) {
+                const comp = state[completed];
+                card = comp[comp.length - 2];
+            } else {
+                drawEmpty(emptyCard);
+                continue;
+            }
+        }
+
+        card.x = locations.completedStacks[suite].x;
+        card.y = locations.completedStacks[suite].y;
+        drawCard(card);
     }
 
     for (let i = 0; i < state.grabbedCards.length; i++) {
@@ -486,18 +498,15 @@ function dblclick(ev) {
     }
 
     let card = cards[0];
-
     const suiteKeys = Object.keys(suites);
-    const pileKey = suiteKeys[card.suite];
-    let completedPile = state[pileKey + "s"];
+    const pileKey = suiteKeys[card.suite] + "s";
+    let completedPile = state[pileKey];
 
-    if (canPlaceOnCompleted(cards, {pile: completedPile, suite: card.suite })) {
+    if (canPlaceOnCompleted(cards, { pile: completedPile, suite: card.suite })) {
         let source = findSourcePile(cards);
         moveCards2(cards, source, completedPile);
+        renderGame();
     }
-
-    renderGame();
-
 }
 
 function findSourcePile(cards) {
@@ -511,6 +520,15 @@ function findSourcePile(cards) {
 
         if (index > -1) {
             return pile;
+        }
+    }
+
+    const completedKeys = Object.keys(suites);
+
+    for (let i = 0; i < completedKeys.length; i++) {
+        const key = completedKeys[i];
+        if (state[key + "s"].indexOf(cards[0]) > -1) {
+            return state[key + "s"];
         }
     }
 
@@ -630,6 +648,17 @@ function getPileUnderMouse(x, y) {
 
         if (card != null) {
             return pile;
+        }
+    }
+
+    const suiteKeys = Object.keys(suites);
+
+    for (let i = 0; i < suiteKeys.length; i++) {
+        const suite = suiteKeys[i];
+        const location = locations.completedStacks[suite];
+
+        if (x >= location.x && y >= location.y && x <= location.x + cardWidth && y <= location.y + cardHeight) {
+            return state[suite + "s"];
         }
     }
 
@@ -785,6 +814,23 @@ function getCardsUnderMouse(x, y) {
     if (cards.length > 0) {
         return [cards.last()];
     }
+
+    const suiteKeys = Object.keys(suites);
+
+    for (let i = 0; i < suiteKeys.length; i++) {
+        const suite = suiteKeys[i];
+        const location = locations.completedStacks[suite];
+        const pile = state[suite + "s"];
+
+        if (pile.length == 0) {
+            continue;
+        }
+
+        if (x >= location.x && y >= location.y && x <= location.x + cardWidth && y <= location.y + cardHeight) {
+            return [pile.last()]
+        }
+    }
+
 
     return [];
 }
