@@ -1,22 +1,25 @@
-//WORKING NOTES:
+/* This is solitaire writing not knowing almost anything about what it would 
+ * take to make this happen. I just hacked and slashed my way through this and 
+ * added things the moment I needed them. 
+ *
+ * Some stuff is clean. Most of it is not. There are for sure better ways to do every
+ * single thing in here but I am pleased with the result.
+ */
 
-//CURRENT ISSUES:
-// Nothing?
-
-//Do Better?: From what I have seen this is the way that most people would do this but I would think that there is possibly a better way. What is the way to do this without clearing the whole of the canvas?
-
-//TODO:
-//* We for sure need that fancy spread all the cards all over the place animation that you would get at the end of the game when you win.
-//* I think that some sort of help thing on the double clicking and whatnot...
-
-//DEBUG
+//DEBUG - 
+/** @constant {boolean} logInfo Logs some stuff to the console
+ */
 const logInfo = false;
-const allowShiftClickMoveToDraw = true;
+/** @constant {boolean} allowShiftClickMoveToDraw This will allow you to move any card that you click on to the draw so that you can put the game into forced win states if you would like for testing.
+ */
+const allowShiftClickMoveToDraw = false;
 
 //CONFIG:
 let config = {
     drawNumber: 1,
 }
+
+let stopEndGameAnimation = false;
 
 /** @function
  * @param {HTMLSelectElement} ele
@@ -35,7 +38,7 @@ function log(...data) {
     }
 }
 
-//GAME STUFF
+//GAME STUFF - Begin the hot mess
 
 /** @class
  * @name Card
@@ -54,8 +57,6 @@ class Card {
         suite,
         x,
         y,
-        w,
-        h,
         color,
         show
     ) {
@@ -63,8 +64,6 @@ class Card {
         this.suite = suite;
         this.x = x;
         this.y = y;
-        this.w = w;
-        this.h = h;
         this.color = color;
         this.show = show;
     }
@@ -85,7 +84,7 @@ const context = canvas.getContext("2d");
 
 const leftClick = 1;
 const cardWidth = 100;
-const cardHeight = 170;
+const cardHeight = 150;
 const cardVertSpace = 30;
 const cardHorizSpace = 30;
 const drawPileMax = 3;
@@ -93,8 +92,8 @@ const drawPileMax = 3;
 const suites = {
     heart: 0,
     spade: 1,
-    club: 2,
-    diamond: 3
+    diamond: 2,
+    club: 3,
 };
 
 const suiteColors = {
@@ -106,14 +105,14 @@ const suiteColors = {
 
 const heart_image = document.getElementById("heart");
 const spade_image = document.getElementById("spade");
-const club_image = document.getElementById("club");
 const diamond_image = document.getElementById("diamond");
+const club_image = document.getElementById("club");
 
 let images = [
     heart_image,
     spade_image,
-    club_image,
     diamond_image,
+    club_image,
 ]
 
 const locations = {
@@ -254,8 +253,6 @@ function populateDraw() {
                 suites[sk],
                 locations.draw.x,
                 locations.draw.y,
-                cardWidth,
-                cardHeight,
                 suiteColors[suiteKeys[si]],
                 false,
             ));
@@ -334,8 +331,6 @@ function renderGame() {
             suites[suite],
             locations.completedStacks[suite].x,
             locations.completedStacks[suite].y,
-            cardWidth,
-            cardHeight,
             suiteColors[suite],
             null
         );
@@ -372,11 +367,11 @@ function renderGame() {
  */
 function drawCardBack(card) {
     context.fillStyle = "Blue";
-    context.fillRect(card.x, card.y, card.w, card.h);
+    context.fillRect(card.x, card.y, cardWidth, cardHeight);
 
     context.strokeStyle = "black";
     context.lineWidth = 1;
-    context.strokeRect(card.x, card.y, card.w, card.h);
+    context.strokeRect(card.x, card.y, cardWidth, cardHeight);
 }
 
 /** @function
@@ -384,14 +379,15 @@ function drawCardBack(card) {
  */
 function drawEmpty(card) {
     context.fillStyle = "rgba(255, 0, 0, 0)";
-    context.fillRect(card.x, card.y, card.w, card.h);
+    context.fillRect(card.x, card.y, cardWidth, cardHeight);
 
     context.strokeStyle = "black";
     context.lineWidth = 1;
-    context.strokeRect(card.x, card.y, card.w, card.h);
+    context.strokeRect(card.x, card.y, cardWidth, cardHeight);
 
+    const imageSize = 80;
     const image = images[card.suite];
-    context.drawImage(image, card.x + cardWidth / 2 - 40, card.y + cardWidth / 2, 80, 80);
+    context.drawImage(image, card.x + cardWidth / 2 - imageSize / 2, card.y + cardHeight / 2 - imageSize / 2, imageSize, imageSize);
 }
 
 /** @function
@@ -399,11 +395,11 @@ function drawEmpty(card) {
  */
 function drawCard(card) {
     context.fillStyle = "White";
-    context.fillRect(card.x, card.y, card.w, card.h);
+    context.fillRect(card.x, card.y, cardWidth, cardHeight);
 
     context.strokeStyle = "black";
     context.lineWidth = 1;
-    context.strokeRect(card.x, card.y, card.w, card.h);
+    context.strokeRect(card.x, card.y, cardWidth, cardHeight);
 
     const number = numDisplay[card.number];
 
@@ -617,13 +613,11 @@ function getPileUnderMouse(x, y) {
                 null,
                 locations.draw.x + cardWidth * (index + 1) + cardHorizSpace * (index + 2),
                 locations.draw.y,
-                cardWidth,
-                cardHeight,
                 null,
                 null
             )
 
-            if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
+            if (x >= card.x && y >= card.y && x <= card.x + cardWidth && y <= card.y + cardHeight) {
                 return card;
             }
 
@@ -632,7 +626,7 @@ function getPileUnderMouse(x, y) {
 
         const card = cards.last();
 
-        if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
+        if (x >= card.x && y >= card.y && x <= card.x + cardWidth && y <= card.y + cardHeight) {
             return card;
         }
 
@@ -773,7 +767,7 @@ function getCardsUnderMouse(x, y) {
         for (let i = cards.length - 1; i >= 0; i--) {
             const card = cards[i];
 
-            if (card.show && x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
+            if (card.show && x >= card.x && y >= card.y && x <= card.x + cardWidth && y <= card.y + cardHeight) {
                 for (let j = i; j < cards.length; j++) {
                     result.push(cards[j]);
                 }
@@ -803,7 +797,7 @@ function getCardsUnderMouse(x, y) {
 
         const card = cards.last();
 
-        if (x >= card.x && y >= card.y && x <= card.x + card.w && y <= card.y + card.h) {
+        if (x >= card.x && y >= card.y && x <= card.x + cardWidth && y <= card.y + cardHeight) {
             result.push(card);
         }
 
@@ -872,6 +866,7 @@ function drawFromDraw() {
 }
 
 function newGame() {
+    stopEndGameAnimation = true;
     localStorage.removeItem("state");
     startGame();
 }
@@ -893,26 +888,40 @@ function startGame() {
 }
 
 function renderGameEnd() {
+    stopEndGameAnimation = false;
     const suiteKeys = Object.keys(suites);
-    let allCards = [];
 
-    for (let i = 0; i < suiteKeys.length - 1; i++) {
+    for (let i = 0; i <= suiteKeys.length - 1; i++) {
         const key = suiteKeys[i] + "s";
         const cards = state[key];
+        let copy = [];
 
         for (let s = cards.length - 1; s >= 0; s--) {
-            let c = cards[s];
+            let c = {...cards[s]};
             c.x = locations.completedStacks[suiteKeys[i]].x;
             c.y = locations.completedStacks[suiteKeys[i]].y;
-            allCards.push({ ...c });
+            copy.push(c);
         }
+
+        renderGameEndCardMove(
+            copy,
+            0,
+            randomBetween(-.5, -5),
+            randomBetween(-6, -9),
+            0,
+            randomBetween(150, 300),
+            randomBetween(50, 150)
+        );
     }
 
-    renderGameEndCardMove(allCards, 0, -5, 8, 0, 200, 100);
+}
+
+function randomBetween(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function renderGameEndCardMove(cards, i, x, y, totalY, down, up) {
-    if (i == cards.length - 1) {
+    if (i == cards.length) {
         return;
     }
 
@@ -920,21 +929,27 @@ function renderGameEndCardMove(cards, i, x, y, totalY, down, up) {
 
     if (card.x <= 0 || card.y >= canvas.height - cardHeight) {
         i++;
-        x = Math.floor(Math.random() * (-2 - -10 + 1)) + -10;
-        y = Math.floor(Math.random() * (20 - 3 + 1)) + 1;
-        down = Math.floor(Math.random() * (250 - 150 + 1)) + 150;
-        up = Math.floor(down / 2);
+        x = randomBetween(-.5, -5);
+        y = randomBetween(-6, -9);
+        totalY = 0;
+        down = randomBetween(150, 300);
+        up = randomBetween(50, 150);
         renderGameEndCardMove(cards, i, x, y, totalY, down, up);
         return;
     }
 
     card.x += x;
     card.y += y;
+    y += .6;
     totalY += Math.abs(y);
 
-    if ((y > 0 && totalY > down) || (y < 0 && totalY > up)) {
-        y *= -1;
+    if (y > 0 && totalY > down) {
+        y = randomBetween(-6, -9);
         totalY = 0;
+    }
+
+    if (stopEndGameAnimation) {
+        return;
     }
 
     drawCard(card);
@@ -956,8 +971,6 @@ function putGameIntoWin() {
                 suites[sk],
                 locations.draw.x,
                 locations.draw.y,
-                cardWidth,
-                cardHeight,
                 suiteColors[suiteKeys[si]],
                 false,
             ));
