@@ -483,6 +483,7 @@ function mouseup(ev) {
 
     state.grabbedCards = [];
     state.mouseClickPos = null;
+    saveState();
     renderGame();
 }
 
@@ -870,7 +871,18 @@ function drawFromDraw() {
 
 }
 
+function newGame() {
+    localStorage.removeItem("state");
+    startGame();
+}
+
 function startGame() {
+    if (loadState()) {
+        setDrawNumber(document.getElementById("drawNumber"), false);
+        renderGame();
+        return;
+    }
+
     initState();
     setDrawNumber(document.getElementById("drawNumber"), false);
     populateDraw();
@@ -956,6 +968,25 @@ function putGameIntoWin() {
     renderGameEnd();
 }
 
+function saveState() {
+    localStorage.setItem("state", JSON.stringify(state));
+}
+
+function loadState() {
+    let s = localStorage.getItem("state");
+
+    if (s == null || s == undefined) {
+        return false;
+    }
+
+    try {
+        state = JSON.parse(s);
+    } catch (error) {
+
+    }
+
+    return true;
+}
 
 canvas.addEventListener("mousedown", mousedown);
 canvas.addEventListener("mouseup", mouseup);
@@ -966,7 +997,7 @@ window.onresize = () => {
     canvas.height = document.body.clientHeight;
     canvas.width = document.body.clientWidth;
 
-    // renderGame(state.draw);
+    renderGame(state.draw);
 }
 
 //Make sure that the SVG images have loaded all the way before trying to render the game.
