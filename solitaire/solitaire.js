@@ -420,7 +420,7 @@ function drawCard(card) {
     context.fillText(number, card.x + cardWidth - numberWidth.width - widthOffset, card.y + cardHeight - heightOffset);
 
     const image = images[card.suite];
-    context.drawImage(image, card.x + cardWidth - widthOffset - 20, card.y + heightOffset, 20, 20);
+    context.drawImage(image, card.x + cardWidth - widthOffset - 25, card.y + heightOffset - 5, 25, 25);
 }
 
 function shuffleDraw() {
@@ -475,6 +475,10 @@ function mouseup(ev) {
         while (state.hiddenShow.length > 0 && state.show.length < drawPileMax) {
             state.show.push(state.hiddenShow.pop());
         }
+    }
+
+    if (state.spades.length == 13 && state.diamonds.length == 13 && state.clubs.length == 13 && state.hearts.length == 13) {
+        renderGameEnd();
     }
 
     state.grabbedCards = [];
@@ -876,6 +880,82 @@ function startGame() {
     renderGame(state.draw);
 }
 
+function renderGameEnd() {
+    const suiteKeys = Object.keys(suites);
+    let allCards = [];
+
+    for (let i = 0; i < suiteKeys.length - 1; i++) {
+        const key = suiteKeys[i] + "s";
+        const cards = state[key];
+
+        for (let s = cards.length - 1; s >= 0; s--) {
+            let c = cards[s];
+            c.x = locations.completedStacks[suiteKeys[i]].x;
+            c.y = locations.completedStacks[suiteKeys[i]].y;
+            allCards.push({ ...c });
+        }
+    }
+
+    renderGameEndCardMove(allCards, 0, -5, 8, 0, 200, 100);
+}
+
+function renderGameEndCardMove(cards, i, x, y, totalY, down, up) {
+    if (i == cards.length - 1) {
+        return;
+    }
+
+    let card = cards[i];
+
+    if (card.x <= 0 || card.y >= canvas.height - cardHeight) {
+        i++;
+        x = Math.floor(Math.random() * (-2 - -10 + 1)) + -10;
+        y = Math.floor(Math.random() * (20 - 3 + 1)) + 1;
+        down = Math.floor(Math.random() * (250 - 150 + 1)) + 150;
+        up = Math.floor(down / 2);
+        renderGameEndCardMove(cards, i, x, y, totalY, down, up);
+        return;
+    }
+
+    card.x += x;
+    card.y += y;
+    totalY += Math.abs(y);
+
+    if ((y > 0 && totalY > down) || (y < 0 && totalY > up)) {
+        y *= -1;
+        totalY = 0;
+    }
+
+    drawCard(card);
+    requestAnimationFrame(() => renderGameEndCardMove(cards, i, x, y, totalY, down, up));
+}
+
+function putGameIntoWin() {
+    initState();
+    populateDraw();
+    const suiteKeys = Object.keys(suites);
+    const numberKeys = Object.keys(numbers);
+
+    for (let si = 0; si < suiteKeys.length; si++) {
+        const sk = suiteKeys[si];
+        for (let ni = 0; ni < numberKeys.length; ni++) {
+            const nk = numberKeys[ni];
+            state[sk + "s"].push(new Card(
+                numbers[nk],
+                suites[sk],
+                locations.draw.x,
+                locations.draw.y,
+                cardWidth,
+                cardHeight,
+                suiteColors[suiteKeys[si]],
+                false,
+            ));
+        }
+    }
+
+    log(state.draw);
+    renderGameEnd();
+}
+
 
 canvas.addEventListener("mousedown", mousedown);
 canvas.addEventListener("mouseup", mouseup);
@@ -886,7 +966,7 @@ window.onresize = () => {
     canvas.height = document.body.clientHeight;
     canvas.width = document.body.clientWidth;
 
-    renderGame(state.draw);
+    // renderGame(state.draw);
 }
 
 //Make sure that the SVG images have loaded all the way before trying to render the game.
