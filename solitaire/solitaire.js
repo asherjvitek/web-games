@@ -866,9 +866,11 @@ function drawFromDraw() {
 }
 
 function newGame() {
-    stopEndGameAnimation = true;
-    localStorage.removeItem("state");
-    startGame();
+    if (confirm("Sure?")) {
+        stopEndGameAnimation = true;
+        localStorage.removeItem("state");
+        startGame();
+    }
 }
 
 function startGame() {
@@ -897,7 +899,7 @@ function renderGameEnd() {
         let copy = [];
 
         for (let s = cards.length - 1; s >= 0; s--) {
-            let c = {...cards[s]};
+            let c = { ...cards[s] };
             c.x = locations.completedStacks[suiteKeys[i]].x;
             c.y = locations.completedStacks[suiteKeys[i]].y;
             copy.push(c);
